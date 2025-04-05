@@ -13,6 +13,19 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 
 // UI Element Reference
 const levelDisplayElement = document.getElementById('level-display');
+const scoreDisplayElement = document.getElementById('score-display'); // Added score element reference
+
+// Score Variables
+let totalScore = 0;
+let currentLevelJumps = 0;
+let currentLevelResets = 0;
+
+// Score Update Function
+function updateScoreDisplay() {
+    if (scoreDisplayElement) {
+        scoreDisplayElement.textContent = `Score: ${totalScore}`;
+    }
+}
 
 // --- Materials ---
 const platformMaterial = new THREE.MeshBasicMaterial({ color: 0xcccccc }); // Grey platforms
@@ -128,6 +141,43 @@ const levelData = [
         { x: 5, y: 1, z: 10, width: 1, depth: 1, type: 'normal' },  // Long jump down
         { x: 9, y: 3, z: 12, width: 0.8, depth: 0.8, type: 'normal' },// Up, smaller
         { x: 12, y: 0, z: 15, width: 2, depth: 2, type: 'goal' },  // Down to goal
+    ],
+    // --- LEVELS WITH MOVING PLATFORMS --- 
+    // Level 11: Simple Horizontal Mover
+    [
+        { x: 0, y: 0, z: 0, width: 2, depth: 2, type: 'start' },
+        { x: 4, y: 0, z: 0, width: 2, depth: 2, type: 'normal', moves: true, moveAxis: 'z', moveDist: 6, moveSpeed: 1.5 },
+        { x: 4, y: 0, z: 10, width: 2, depth: 2, type: 'goal' },
+    ],
+    // Level 12: Vertical Mover (Elevator)
+    [
+        { x: 0, y: 0, z: 0, width: 3, depth: 3, type: 'start' },
+        { x: 5, y: 0, z: 0, width: 1.5, depth: 1.5, type: 'normal', moves: true, moveAxis: 'y', moveDist: 5, moveSpeed: 1 },
+        { x: 5, y: 8, z: 0, width: 3, depth: 3, type: 'goal' }, // Need to land on it while high up
+    ],
+    // Level 13: Timed Horizontal Movers
+    [
+        { x: 0, y: 0, z: 0, width: 2, depth: 2, type: 'start' },
+        { x: 4, y: 0, z: 0, width: 1.5, depth: 1.5, type: 'normal', moves: true, moveAxis: 'x', moveDist: 4, moveSpeed: 2 },
+        { x: 10, y: 0, z: 0, width: 1.5, depth: 1.5, type: 'normal', moves: true, moveAxis: 'x', moveDist: -4, moveSpeed: 1.5 }, // Opposite direction
+        { x: 16, y: 0, z: 0, width: 2, depth: 2, type: 'goal' },
+    ],
+    // Level 14: Horizontal + Vertical Movers
+    [
+        { x: 0, y: 0, z: 0, width: 2, depth: 2, type: 'start' },
+        { x: 4, y: 0, z: 0, width: 1.5, depth: 1.5, type: 'normal', moves: true, moveAxis: 'z', moveDist: 5, moveSpeed: 1.2 },
+        { x: 4, y: 0, z: 8, width: 1.5, depth: 1.5, type: 'normal' }, // Static platform 
+        { x: 8, y: 0, z: 8, width: 1.5, depth: 1.5, type: 'normal', moves: true, moveAxis: 'y', moveDist: 4, moveSpeed: 1.5 }, // Vertical
+        { x: 8, y: 6, z: 8, width: 2, depth: 2, type: 'goal' },
+    ],
+    // Level 15: Tricky Movers Gauntlet
+    [
+        { x: 0, y: 0, z: 0, width: 2, depth: 2, type: 'start' }, 
+        { x: 4, y: 0, z: 0, width: 1, depth: 1, type: 'normal', moves: true, moveAxis: 'x', moveDist: 3, moveSpeed: 2.5 }, // Fast small mover
+        { x: 9, y: 2, z: 3, width: 1.5, depth: 1.5, type: 'normal', moves: true, moveAxis: 'z', moveDist: -4, moveSpeed: 1 }, // Up and back
+        { x: 9, y: 2, z: -3, width: 1.5, depth: 1.5, type: 'normal' }, // Static
+        { x: 13, y: 4, z: -3, width: 1, depth: 1, type: 'normal', moves: true, moveAxis: 'y', moveDist: 3, moveSpeed: 1.8 }, // Vertical
+        { x: 13, y: 9, z: -3, width: 2, depth: 2, type: 'goal' },
     ]
 ];
 
@@ -146,7 +196,7 @@ let canJump = false; // Make canJump global
 function loadLevel(levelIndex) {
     // Clear previous level's meshes
     platformMeshes.forEach(p => scene.remove(p.mesh));
-    platformMeshes = [];
+    platformMeshes = []; // Reset platform data array
 
     const level = levelData[levelIndex];
     if (!level) {
@@ -165,6 +215,10 @@ function loadLevel(levelIndex) {
     if (levelDisplayElement) {
         levelDisplayElement.textContent = `Level: ${levelIndex}`;
     }
+
+    // Reset level score counters
+    currentLevelJumps = 0;
+    currentLevelResets = 0;
 
     level.forEach(pData => {
         const platGeo = new THREE.BoxGeometry(pData.width, platformHeight, pData.depth);
@@ -188,8 +242,21 @@ function loadLevel(levelIndex) {
         platformMesh.translateY(platformHeight / 2); // Move up so top is at platformTopY
 
         scene.add(platformMesh);
-        // Store mesh, data, and calculated top Y for collision checks
-        platformMeshes.push({ mesh: platformMesh, data: pData, topY: platformTopY }); 
+
+        // Store mesh, data, calculated top Y, and movement details
+        const platformInfo = {
+            mesh: platformMesh,
+            data: pData,
+            topY: platformTopY,
+            isMoving: pData.moves === true,
+            initialPosition: platformMesh.position.clone() // Store starting position for movement calculations
+        };
+        if (platformInfo.isMoving) {
+            platformInfo.moveAxis = pData.moveAxis || 'x'; // Default to x if not specified
+            platformInfo.moveDist = pData.moveDist || 0;
+            platformInfo.moveSpeed = pData.moveSpeed || 1;
+        }
+        platformMeshes.push(platformInfo); 
     });
 
     resetPlayer(); // Place player at the start of the loaded level
@@ -291,6 +358,7 @@ const onKeyDown = function (event) {
                 verticalVelocity = jumpStrength;
                 isJumping = true;
                 canJump = false; // Prevent double-jumping in same frame/before leaving ground
+                currentLevelJumps++; // Increment jump counter
             }
             break;
     }
@@ -348,6 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     verticalVelocity = jumpStrength;
                     isJumping = true;
                     canJump = false;
+                    currentLevelJumps++; // Increment jump counter
                 }
                 break;
         }
@@ -402,10 +471,34 @@ function animate() {
     const elapsedTime = clock.getElapsedTime(); // Get total time elapsed
     const turnSpeed = Math.PI * 0.75; // Radians per second for turning
     const moveSpeed = 5.0; // Units per second for movement
-    const bobFrequency = 10; // How fast the bobbing happens - WILL BE REMOVED
-    const bobAmplitude = 0.1; // How high the character bobs - WILL BE REMOVED
     const legSwingFrequency = 15; // How fast the legs swing
-    const legSwingAmplitude = Math.PI / 4; // How far legs swing (in radians, e.g., 45 degrees)
+    const legSwingAmplitude = Math.PI / 4; // How far legs swing
+
+    // --- Update Moving Platform Positions --- 
+    let playerOnMovingPlatformDelta = new THREE.Vector3(0, 0, 0); // Initialize delta for player on platform
+    platformMeshes.forEach(platInfo => {
+        if (platInfo.isMoving) {
+            const oldPos = platInfo.mesh.position.clone(); // Store position before update
+
+            // Calculate new position using a sine wave for smooth back/forth
+            const oscillation = Math.sin(elapsedTime * platInfo.moveSpeed) * platInfo.moveDist;
+            platInfo.mesh.position.copy(platInfo.initialPosition);
+            if (platInfo.moveAxis === 'x') {
+                platInfo.mesh.position.x += oscillation;
+            } else if (platInfo.moveAxis === 'y') {
+                platInfo.mesh.position.y += oscillation;
+                // Update topY as well if moving vertically
+                platInfo.topY = platInfo.mesh.position.y + platformHeight / 2;
+            } else if (platInfo.moveAxis === 'z') {
+                platInfo.mesh.position.z += oscillation;
+            }
+
+            // Calculate the movement delta for this frame
+            platInfo.movementDelta = platInfo.mesh.position.clone().sub(oldPos);
+        } else {
+            platInfo.movementDelta = new THREE.Vector3(0, 0, 0); // No delta for static platforms
+        }
+    });
 
     // --- Apply Gravity and Update Vertical Position --- 
     verticalVelocity -= gravity * delta;
@@ -416,19 +509,21 @@ function animate() {
     let landedSafely = false;
     let landedPlatformType = null;
     let targetPlatformY = 0; // To store the Y of the platform we landed on
+    let landedPlatformInfo = null; // Store the info of the platform landed on
 
     if (verticalVelocity <= 0) { // Only check for landing if moving down or still
-        for (const plat of platformMeshes) {
-            const pData = plat.data;
-            const platformTopY = plat.topY;
+        for (const platInfo of platformMeshes) { // Use platInfo now
+            const pData = platInfo.data;
+            const platformTopY = platInfo.topY; // Use updated topY for moving platforms
             const charX = characterGroup.position.x; // Check current horizontal position
             const charZ = characterGroup.position.z;
             const halfWidth = pData.width / 2;
             const halfDepth = pData.depth / 2;
+            const platformMeshPos = platInfo.mesh.position; // Use current mesh position
 
             // Check if horizontally aligned AND feet are about to pass through the platform top
-            if (charX >= pData.x - halfWidth && charX <= pData.x + halfWidth &&
-                charZ >= pData.z - halfDepth && charZ <= pData.z + halfDepth &&
+            if (charX >= platformMeshPos.x - halfWidth && charX <= platformMeshPos.x + halfWidth &&
+                charZ >= platformMeshPos.z - halfDepth && charZ <= platformMeshPos.z + halfDepth &&
                 characterGroup.position.y >= platformTopY && // Current pos is above or at platform
                 characterFeetY <= platformTopY) { // Potential pos is below or at platform
                 
@@ -439,12 +534,21 @@ function animate() {
                 verticalVelocity = 0;
                 isJumping = false;
                 canJump = true;
+                landedPlatformInfo = platInfo; // Store the landed platform's info
                 break; // Landed on this platform
             }
         }
     }
 
-    // Update actual position
+    // --- Apply Movement from Platform (if landed on one) ---
+    if (landedPlatformInfo && landedPlatformInfo.isMoving) {
+        // Apply the platform's movement delta for this frame to the character
+        characterGroup.position.add(landedPlatformInfo.movementDelta);
+        // Adjust potentialY based on vertical movement of the platform
+        potentialY += landedPlatformInfo.movementDelta.y; 
+    }
+
+    // Update actual vertical position
     characterGroup.position.y = potentialY;
 
     // --- Handle Landing Results --- 
@@ -452,6 +556,13 @@ function animate() {
         // Check if it's the goal platform
         if (landedPlatformType === 'goal') {
             console.log("Reached the goal!");
+            
+            // Calculate level score
+            let levelScore = Math.max(0, 10 - currentLevelJumps - currentLevelResets);
+            console.log(`Level ${currentLevelIndex} Score: ${levelScore} (Jumps: ${currentLevelJumps}, Resets: ${currentLevelResets})`);
+            totalScore += levelScore;
+            updateScoreDisplay(); // Update the scoreboard UI
+
             currentLevelIndex++;
             loadLevel(currentLevelIndex); // Load next level
             // Skip rest of frame logic to avoid issues with reset character state
@@ -461,6 +572,7 @@ function animate() {
     } else {
         // Didn't land on a platform, are we in the lava?
         if (characterFeetY < lavaLevelY + 0.1) { // Check against actual position (potentialY)
+            currentLevelResets++; // Increment reset counter
             resetPlayer(); // Resets position and velocity
             // Skip rest of frame logic
             return;
@@ -506,16 +618,10 @@ function animate() {
         const swingAngle = Math.sin(elapsedTime * legSwingFrequency) * legSwingAmplitude;
         leftLegMesh.rotation.x = swingAngle;
         rightLegMesh.rotation.x = -swingAngle;
-
-        // REMOVE Bobbing Animation
-        // characterGroup.position.y = characterBaseY + Math.sin(elapsedTime * bobFrequency) * bobAmplitude;
     } else {
         // Reset legs when not moving
         leftLegMesh.rotation.x = 0;
         rightLegMesh.rotation.x = 0;
-
-        // Ensure character is at base height when stopped - REMOVED (Handled by gravity/jump logic)
-        // characterGroup.position.y = characterBaseY;
     }
 
     // Camera Following (Chase Cam)
@@ -536,10 +642,6 @@ function animate() {
     // 3. Add rotated offset to character's world position
     desiredCameraPosition.copy(characterWorldPosition).add(worldOffset);
     
-    // Calculate desired position based on character's rotation and position - OLD METHOD REMOVED
-    // desiredCameraPosition.copy(characterGroup.position)
-    //                    .add(desiredCameraOffset.applyMatrix4(characterGroup.matrixWorld)); // Apply character's world transform to offset
-
     // Smoothly interpolate camera position (lerp)
     camera.position.lerp(desiredCameraPosition, delta * 5.0); // Adjust the 5.0 for faster/slower follow
 
