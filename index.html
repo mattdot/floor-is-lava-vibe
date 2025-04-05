@@ -5,15 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Voxel World Explorer</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Import Map -->
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "./node_modules/three/build/three.module.js",
-                "three/examples/jsm/controls/PointerLockControls.js": "./node_modules/three/examples/jsm/controls/PointerLockControls.js"
-            }
-        }
-    </script>
+    <!-- Import Map Removed -->
+    <!-- Load Three.js core from cdnjs (v0.158.0) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js"></script>
+    <!-- Load Addons from jsDelivr (cdnjs doesn't reliably host examples) - REMOVED -->
 </head>
 <body>
     <div id="ui-container">
@@ -35,6 +30,7 @@
         </div>
     </div>
 
-    <script src="main.js" type="module"></script>  <!-- Use type="module" for imports -->
+    <!-- Load main script after THREE is loaded and DOM is ready -->
+    <script src="main.js"></script> 
 </body>
 </html> 

@@ -1,6 +1,3 @@
-import * as THREE from 'three';
-import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
-
 // Voxel World Explorer - Main JavaScript File
 
 console.log("Game starting...");
