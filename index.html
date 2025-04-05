@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Voxel World Explorer</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Import Map -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "./node_modules/three/build/three.module.js",
+                "three/examples/jsm/controls/PointerLockControls.js": "./node_modules/three/examples/jsm/controls/PointerLockControls.js"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="ui-container">
+        <span id="level-display">Level: 0</span>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- --- On-Screen Controls HTML --- -->
+    <div id="controls-container">
+        <div id="left-controls">
+            <button id="button-forward" class="control-button">W</button>
+            <button id="button-left" class="control-button">A</button>
+            <button id="button-right" class="control-button">D</button>
+            <button id="button-back" class="control-button">S</button>
+        </div>
+        <div id="right-controls">
+            <button id="button-jump" class="control-button">Jump</button>
+        </div>
+    </div>
+
+    <script src="main.js" type="module"></script>  <!-- Use type="module" for imports -->
+</body>
+</html> 

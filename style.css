@@ -1,0 +1,83 @@
+body {
+    margin: 0;
+    overflow: hidden; /* Prevent scrollbars */
+}
+
+#gameCanvas {
+    display: block; /* Remove extra space below canvas */
+    width: 100vw;
+    height: 100vh;
+} 
+
+/* --- On-Screen Controls CSS --- */
+#controls-container {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    right: 20px; /* Span across bottom */
+    display: flex;
+    justify-content: space-between; /* Space out left/right controls */
+    z-index: 5;
+    pointer-events: none; /* Allow clicks/touches to pass through container */
+}
+
+.control-button {
+    background-color: rgba(100, 100, 100, 0.6);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    border-radius: 50%; /* Circle buttons */
+    width: 60px;
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none; /* Prevent text selection */
+    pointer-events: auto; /* Enable clicks/touches on buttons */
+}
+
+.control-button:active {
+     background-color: rgba(150, 150, 150, 0.8);
+}
+
+#left-controls, #right-controls {
+    display: grid; /* Use grid for layout */
+    gap: 10px;
+}
+
+#left-controls {
+     grid-template-areas:
+        ". forward ."
+        "left . right"
+        ". back .";
+     justify-items: center; /* Center items in grid cells */
+}
+ #button-forward { grid-area: forward; }
+ #button-left { grid-area: left; }
+ #button-right { grid-area: right; }
+ #button-back { grid-area: back; }
+
+#right-controls {
+    display: flex; /* Simple flex for single button */
+    align-items: center; /* Vertically center jump */
+}
+ #button-jump {
+     width: 80px;
+     height: 80px;
+     font-size: 18px; /* Smaller text for "Jump" */
+ }
+
+ /* --- UI Adjustments --- */
+ #ui-container {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: white;
+    font-family: sans-serif;
+    background-color: rgba(0,0,0,0.5);
+    padding: 5px;
+    border-radius: 3px;
+    z-index: 10; /* Ensure UI is above controls */
+} 
