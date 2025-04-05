@@ -55,6 +55,79 @@ const levelData = [
         { x: 4, y: 2, z: 4, width: 1.5, depth: 1.5, type: 'normal' },
         { x: 0, y: 3, z: 4, width: 1.5, depth: 1.5, type: 'normal' },
         { x: -3, y: 4, z: 4, width: 3, depth: 1.5, type: 'goal' },
+    ],
+    // Level 3: Precise horizontal jumps
+    [
+        { x: 0, y: 0, z: 0, width: 2, depth: 2, type: 'start' },
+        { x: 5, y: 0, z: 2, width: 1, depth: 1, type: 'normal' }, // Small platform
+        { x: 1, y: 0, z: 4, width: 1, depth: 1, type: 'normal' }, // Small platform
+        { x: 5, y: 0, z: 6, width: 1, depth: 1, type: 'normal' }, // Small platform
+        { x: 9, y: 1, z: 8, width: 2, depth: 2, type: 'goal' },   // Slightly higher goal
+    ],
+    // Level 4: Vertical Climb
+    [
+        { x: 0, y: 0, z: 0, width: 3, depth: 3, type: 'start' },
+        { x: 0, y: 3, z: 4, width: 2, depth: 2, type: 'normal' },
+        { x: 4, y: 6, z: 4, width: 2, depth: 2, type: 'normal' },
+        { x: 4, y: 9, z: 0, width: 2, depth: 2, type: 'normal' },
+        { x: 0, y: 12, z: 0, width: 2, depth: 2, type: 'goal' },
+    ],
+    // Level 5: Simple Branching
+    [
+        { x: 0, y: 0, z: 0, width: 3, depth: 3, type: 'start' },
+        { x: 5, y: 0, z: 0, width: 2, depth: 2, type: 'normal' }, // Junction
+        // Path A (Left)
+        { x: 8, y: 1, z: -3, width: 1.5, depth: 1.5, type: 'normal' },
+        // Path B (Right)
+        { x: 8, y: 1, z: 3, width: 1.5, depth: 1.5, type: 'normal' },
+        // Merge
+        { x: 12, y: 0, z: 0, width: 2, depth: 2, type: 'normal' },
+        { x: 16, y: 0, z: 0, width: 2, depth: 2, type: 'goal' },
+    ],
+    // Level 6: Smaller Platforms, Increased Accuracy
+    [
+        { x: 0, y: 0, z: 0, width: 2, depth: 2, type: 'start' },
+        { x: 4, y: 0.5, z: 1, width: 1, depth: 1, type: 'normal' },
+        { x: 1, y: 1, z: 4, width: 0.8, depth: 0.8, type: 'normal' }, // Smaller
+        { x: 4, y: 1.5, z: 7, width: 0.8, depth: 0.8, type: 'normal' }, // Smaller
+        { x: 8, y: 2, z: 8, width: 1, depth: 1, type: 'normal' },
+        { x: 12, y: 1.5, z: 6, width: 2, depth: 2, type: 'goal' }, // Descent to goal
+    ],
+    // Level 7: Zig-Zag Climb
+    [
+        { x: 0, y: 0, z: 0, width: 2, depth: 2, type: 'start' },
+        { x: 3, y: 2, z: 3, width: 1.5, depth: 1.5, type: 'normal' },
+        { x: -1, y: 4, z: 6, width: 1.5, depth: 1.5, type: 'normal' },
+        { x: 3, y: 6, z: 9, width: 1.5, depth: 1.5, type: 'normal' },
+        { x: -1, y: 8, z: 12, width: 1.5, depth: 1.5, type: 'normal' },
+        { x: 3, y: 10, z: 15, width: 2, depth: 2, type: 'goal' },
+    ],
+    // Level 8: Longer Jumps and Descent
+    [
+        { x: 0, y: 0, z: 0, width: 2, depth: 2, type: 'start' },
+        { x: 6, y: 1, z: 0, width: 1.5, depth: 1.5, type: 'normal' }, // Longer jump
+        { x: 6, y: 4, z: 5, width: 1.5, depth: 1.5, type: 'normal' }, // Climb
+        { x: 12, y: 5, z: 5, width: 1.5, depth: 1.5, type: 'normal' },// Long jump again
+        { x: 12, y: 1, z: 10, width: 1.5, depth: 1.5, type: 'normal' },// Descend
+        { x: 6, y: 0, z: 10, width: 2, depth: 2, type: 'goal' },     // Descend to goal
+    ],
+    // Level 9: Precision Jumps (Very Small Platforms)
+    [
+        { x: 0, y: 0, z: 0, width: 1.5, depth: 1.5, type: 'start' },
+        { x: 4, y: 0, z: 0, width: 0.5, depth: 0.5, type: 'normal' }, // Tiny!
+        { x: 4, y: 2, z: 4, width: 0.5, depth: 0.5, type: 'normal' }, // Tiny + climb
+        { x: 0, y: 2, z: 8, width: 0.5, depth: 0.5, type: 'normal' }, // Tiny
+        { x: 0, y: 4, z: 12, width: 0.5, depth: 0.5, type: 'normal' },// Tiny + climb
+        { x: 4, y: 4, z: 16, width: 1.5, depth: 1.5, type: 'goal' },
+    ],
+    // Level 10: Complex Path (Up, Down, Small Platforms)
+    [
+        { x: 0, y: 0, z: 0, width: 2, depth: 2, type: 'start' },
+        { x: 5, y: 2, z: 2, width: 1, depth: 1, type: 'normal' },   // Up
+        { x: 2, y: 4, z: 6, width: 0.8, depth: 0.8, type: 'normal' }, // Up, smaller
+        { x: 5, y: 1, z: 10, width: 1, depth: 1, type: 'normal' },  // Long jump down
+        { x: 9, y: 3, z: 12, width: 0.8, depth: 0.8, type: 'normal' },// Up, smaller
+        { x: 12, y: 0, z: 15, width: 2, depth: 2, type: 'goal' },  // Down to goal
     ]
 ];
 
