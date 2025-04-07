@@ -182,6 +182,18 @@ const levelData = [
 ];
 
 let currentLevelIndex = 0;
+
+// --- Get Level from Query String --- 
+const urlParams = new URLSearchParams(window.location.search);
+const requestedLevel = parseInt(urlParams.get('level'), 10);
+
+if (!isNaN(requestedLevel) && requestedLevel >= 0 && requestedLevel < levelData.length) {
+    currentLevelIndex = requestedLevel;
+    console.log(`Starting at level ${currentLevelIndex} specified in URL.`);
+} else {
+    console.log('No valid level specified in URL, starting at level 0.');
+}
+
 let platformMeshes = []; // To hold meshes of the current level
 let startPosition = new THREE.Vector3(0, platformHeight, 0); // Will be updated by loadLevel
 
@@ -514,23 +526,42 @@ function animate() {
     if (verticalVelocity <= 0) { // Only check for landing if moving down or still
         for (const platInfo of platformMeshes) { // Use platInfo now
             const pData = platInfo.data;
-            const platformTopY = platInfo.topY; // Use updated topY for moving platforms
+            const platformTopY_end = platInfo.topY; // Use updated topY for moving platforms (End Y position)
             const charX = characterGroup.position.x; // Check current horizontal position
             const charZ = characterGroup.position.z;
             const halfWidth = pData.width / 2;
             const halfDepth = pData.depth / 2;
-            const platformMeshPos = platInfo.mesh.position; // Use current mesh position
+            const platformMeshPos = platInfo.mesh.position; // Use current mesh position (End X/Z position)
 
-            // Check if horizontally aligned AND feet are about to pass through the platform top
-            if (charX >= platformMeshPos.x - halfWidth && charX <= platformMeshPos.x + halfWidth &&
-                charZ >= platformMeshPos.z - halfDepth && charZ <= platformMeshPos.z + halfDepth &&
-                characterGroup.position.y >= platformTopY && // Current pos is above or at platform
-                characterFeetY <= platformTopY) { // Potential pos is below or at platform
+            // Calculate platform's vertical movement during this frame
+            const platformDeltaY = platInfo.movementDelta ? platInfo.movementDelta.y : 0;
+            // Calculate platform's top Y at the START of this frame
+            const platformTopY_start = platformTopY_end - platformDeltaY;
+
+            // Player's vertical position at the START of this frame
+            const playerY_start = characterGroup.position.y;
+            // Player's potential vertical position at the END of this frame (before snapping)
+            // Note: potentialY already includes verticalVelocity * delta
+            const playerY_end_potential = potentialY;
+
+            // Check if horizontally aligned
+            const isHorizontallyAligned = (
+                charX >= platformMeshPos.x - halfWidth && charX <= platformMeshPos.x + halfWidth &&
+                charZ >= platformMeshPos.z - halfDepth && charZ <= platformMeshPos.z + halfDepth
+            );
+
+            // --- Refined Vertical Collision Check with Tolerance ---
+            const epsilon = 0.01; // Small tolerance for floating point comparisons
+
+            // Check for collision based on start and end positions relative to the platform
+            if (isHorizontallyAligned &&
+                playerY_start >= platformTopY_start - epsilon && // Player started at or slightly below platform start top
+                playerY_end_potential <= platformTopY_end + epsilon) { // Player ended (potentially) at or slightly above platform end top
                 
                 landedSafely = true;
                 landedPlatformType = pData.type;
-                targetPlatformY = platformTopY;
-                potentialY = platformTopY; // Snap potential position to the platform top
+                targetPlatformY = platformTopY_end; // Land ON the platform's final position
+                potentialY = platformTopY_end; // Snap potential position to the platform top (no epsilon here)
                 verticalVelocity = 0;
                 isJumping = false;
                 canJump = true;
@@ -540,16 +571,15 @@ function animate() {
         }
     }
 
-    // --- Apply Movement from Platform (if landed on one) ---
-    if (landedPlatformInfo && landedPlatformInfo.isMoving) {
-        // Apply the platform's movement delta for this frame to the character
-        characterGroup.position.add(landedPlatformInfo.movementDelta);
-        // Adjust potentialY based on vertical movement of the platform
-        potentialY += landedPlatformInfo.movementDelta.y; 
-    }
-
     // Update actual vertical position
     characterGroup.position.y = potentialY;
+
+    // --- Apply Horizontal Movement from Platform (if landed on one) ---
+    // Apply this *after* vertical position is set, but *before* player input movement
+    if (landedPlatformInfo && landedPlatformInfo.isMoving) {
+        characterGroup.position.x += landedPlatformInfo.movementDelta.x;
+        characterGroup.position.z += landedPlatformInfo.movementDelta.z;
+    }
 
     // --- Handle Landing Results --- 
     if (landedSafely) {
@@ -557,10 +587,16 @@ function animate() {
         if (landedPlatformType === 'goal') {
             console.log("Reached the goal!");
             
-            // Calculate level score
+            // Calculate level score based on jumps/resets
             let levelScore = Math.max(0, 10 - currentLevelJumps - currentLevelResets);
-            console.log(`Level ${currentLevelIndex} Score: ${levelScore} (Jumps: ${currentLevelJumps}, Resets: ${currentLevelResets})`);
+            console.log(`Level ${currentLevelIndex} Score (Performance): ${levelScore} (Jumps: ${currentLevelJumps}, Resets: ${currentLevelResets})`);
             totalScore += levelScore;
+
+            // Add bonus points for completing the level
+            const levelCompletionBonus = 10;
+            totalScore += levelCompletionBonus;
+            console.log(`Added ${levelCompletionBonus} bonus points for completing the level. New Total Score: ${totalScore}`);
+
             updateScoreDisplay(); // Update the scoreboard UI
 
             currentLevelIndex++;
