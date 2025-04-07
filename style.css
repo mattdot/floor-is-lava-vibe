@@ -1,13 +1,127 @@
 body {
     margin: 0;
     overflow: hidden; /* Prevent scrollbars */
+    font-family: sans-serif;
 }
 
-#gameCanvas {
-    display: block; /* Remove extra space below canvas */
-    width: 100vw;
-    height: 100vh;
-} 
+canvas {
+    display: block;
+}
+
+#ui-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Allow clicks/touches to pass through to canvas unless on a control */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* Pushes stats up and controls down */
+}
+
+#stats-display {
+    position: absolute; /* Absolute positioning relative to overlay */
+    top: 10px;
+    left: 10px;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    pointer-events: auto; /* Enable pointer events for stats if needed later */
+}
+
+#level-display,
+#score-display {
+    margin-bottom: 5px;
+}
+
+#controls {
+    position: absolute; /* Absolute positioning relative to overlay */
+    bottom: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between; /* Space out D-pad and Jump button */
+    align-items: flex-end; /* Align items to the bottom */
+    padding: 0 20px; /* Add some padding on the sides */
+    box-sizing: border-box; /* Include padding in width calculation */
+    pointer-events: auto; /* Enable pointer events for controls area */
+}
+
+/* --- D-Pad Styling --- */
+#d-pad-container {
+    position: relative; /* Needed for absolute positioning of knob */
+    width: 120px; /* Adjust size as needed */
+    height: 120px;
+    background-color: rgba(128, 128, 128, 0.5); /* Semi-transparent grey */
+    border-radius: 50%; /* Make it circular */
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: auto; /* Explicitly enable pointer events */
+    /* Remove margin-right if Jump button is on the right */
+}
+
+#d-pad-knob {
+    width: 50px; /* Knob size */
+    height: 50px;
+    background-color: rgba(200, 200, 200, 0.8); /* Lighter grey */
+    border-radius: 50%;
+    border: 1px solid white;
+    position: absolute; /* Allow precise positioning */
+    left: 50%; /* Center horizontally */
+    top: 50%; /* Center vertically */
+    transform: translate(-50%, -50%); /* Precise centering */
+    pointer-events: none; /* Knob itself shouldn't capture events */
+}
+
+#button-jump {
+    padding: 15px 25px;
+    font-size: 1.2em;
+    background-color: rgba(0, 150, 0, 0.7); /* Green */
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    border-radius: 10px;
+    cursor: pointer;
+    user-select: none; /* Prevent text selection */
+    pointer-events: auto; /* Enable pointer events */
+    min-width: 100px; /* Ensure minimum width */
+    text-align: center;
+}
+
+#button-jump:active {
+    background-color: rgba(0, 100, 0, 0.8); /* Darker green when pressed */
+}
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 600px) {
+    #d-pad-container {
+        width: 100px;
+        height: 100px;
+    }
+
+    #d-pad-knob {
+        width: 40px;
+        height: 40px;
+    }
+
+    #button-jump {
+        padding: 12px 20px;
+        font-size: 1em;
+        min-width: 80px;
+    }
+
+    #controls {
+        bottom: 15px;
+        padding: 0 15px;
+    }
+
+    #stats-display {
+        font-size: 0.9em;
+        padding: 8px;
+    }
+}
 
 /* --- On-Screen Controls CSS --- */
 #controls-container {

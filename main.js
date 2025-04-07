@@ -346,133 +346,160 @@ const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3(); // Only z-component will be used now
 const clock = new THREE.Clock(); // For delta time calculation
 
-// Keyboard event listeners
-const onKeyDown = function (event) {
-    switch (event.code) {
-        case 'ArrowUp':
-        case 'KeyW':
-            moveForward = true;
-            break;
-        case 'ArrowLeft':
-        case 'KeyA':
-            turnLeft = true; // Changed from moveLeft
-            break;
-        case 'ArrowDown':
-        case 'KeyS':
-            moveBackward = true;
-            break;
-        case 'ArrowRight':
-        case 'KeyD':
-            turnRight = true; // Changed from moveRight
-            break;
-        case 'Space':
-            if (canJump && !isJumping) { 
-                verticalVelocity = jumpStrength;
-                isJumping = true;
-                canJump = false; // Prevent double-jumping in same frame/before leaving ground
-                currentLevelJumps++; // Increment jump counter
-            }
-            break;
-    }
-};
-
-const onKeyUp = function (event) {
-    switch (event.code) {
-        case 'ArrowUp':
-        case 'KeyW':
-            moveForward = false;
-            break;
-        case 'ArrowLeft':
-        case 'KeyA':
-            turnLeft = false; // Changed from moveLeft
-            break;
-        case 'ArrowDown':
-        case 'KeyS':
-            moveBackward = false;
-            break;
-        case 'ArrowRight':
-        case 'KeyD':
-            turnRight = false; // Changed from moveRight
-            break;
-    }
-};
-
-document.addEventListener('keydown', onKeyDown);
-document.addEventListener('keyup', onKeyUp);
-
 // --- On-Screen Controls Logic ---
 
-// Wrap DOM-dependent code in DOMContentLoaded listener
 document.addEventListener('DOMContentLoaded', () => {
-    const btnForward = document.getElementById('button-forward');
-    const btnBack = document.getElementById('button-back');
-    const btnLeft = document.getElementById('button-left');
-    const btnRight = document.getElementById('button-right');
+    // Remove old button references
+    // const btnForward = document.getElementById('button-forward');
+    // const btnBack = document.getElementById('button-back');
+    // const btnLeft = document.getElementById('button-left');
+    // const btnRight = document.getElementById('button-right');
     const btnJump = document.getElementById('button-jump');
 
-    // Check if buttons exist before adding listeners
-    if (!btnForward || !btnBack || !btnLeft || !btnRight || !btnJump) {
-        console.error("One or more control buttons not found in the DOM!");
-        return; // Stop if buttons aren't found
+    // New D-pad references
+    const dPadContainer = document.getElementById('d-pad-container');
+    const dPadKnob = document.getElementById('d-pad-knob');
+
+    // Check if elements exist
+    // if (!btnForward || !btnBack || !btnLeft || !btnRight || !btnJump || !dPadContainer || !dPadKnob) { // Adjusted check
+    if (!btnJump || !dPadContainer || !dPadKnob) { // Simplified check
+        console.error("One or more control elements not found in the DOM!");
+        return; // Stop if elements aren't found
     }
 
-    function handlePointerDown(event, action) {
-        event.preventDefault(); // Prevent default touch behaviors (scrolling, zooming)
-        switch (action) {
-            case 'forward': moveForward = true; break;
-            case 'back': moveBackward = true; break;
-            case 'left': turnLeft = true; break;
-            case 'right': turnRight = true; break;
-            case 'jump':
-                if (canJump && !isJumping) {
-                    verticalVelocity = jumpStrength;
-                    isJumping = true;
-                    canJump = false;
-                    currentLevelJumps++; // Increment jump counter
-                }
-                break;
-        }
+    let isDragging = false;
+    let dPadCenterX, dPadCenterY, dPadRadius;
+    const knobMaxDisplacement = 30; // Max pixels the knob center can move from pad center
+    const deadZone = 10; // Pixels from center before movement is registered
+
+    function updateDPadDimensions() {
+        const rect = dPadContainer.getBoundingClientRect();
+        dPadCenterX = rect.left + rect.width / 2;
+        dPadCenterY = rect.top + rect.height / 2;
+        dPadRadius = rect.width / 2;
     }
 
-    function handlePointerUp(event, action) {
+    updateDPadDimensions(); // Initial calculation
+    window.addEventListener('resize', updateDPadDimensions); // Recalculate on resize
+
+    // --- Jump Button Handling (remains similar) ---
+    function handleJumpPress(event) {
         event.preventDefault();
-        switch (action) {
-            case 'forward': moveForward = false; break;
-            case 'back': moveBackward = false; break;
-            case 'left': turnLeft = false; break;
-            case 'right': turnRight = false; break;
-            // No action needed for jump on release
+        if (canJump && !isJumping) {
+            verticalVelocity = jumpStrength;
+            isJumping = true;
+            canJump = false;
+            currentLevelJumps++; // Increment jump counter
         }
     }
 
-    // Add listeners for both touch and mouse events
+    btnJump.addEventListener('touchstart', handleJumpPress, { passive: false });
+    btnJump.addEventListener('mousedown', handleJumpPress);
+
+    // --- D-Pad Event Handling ---
+    function handleDragStart(event) {
+        event.preventDefault();
+        isDragging = true;
+        dPadContainer.style.opacity = '0.8'; // Make it slightly more opaque when active
+        handleDragMove(event); // Process initial position immediately
+    }
+
+    function handleDragMove(event) {
+        if (!isDragging) return;
+        event.preventDefault();
+
+        let clientX, clientY;
+        if (event.touches) {
+            clientX = event.touches[0].clientX;
+            clientY = event.touches[0].clientY;
+        } else {
+            clientX = event.clientX;
+            clientY = event.clientY;
+        }
+
+        const deltaX = clientX - dPadCenterX;
+        const deltaY = clientY - dPadCenterY;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+        let knobX = deltaX;
+        let knobY = deltaY;
+
+        // Clamp knob position within the max displacement radius
+        if (distance > knobMaxDisplacement) {
+            const ratio = knobMaxDisplacement / distance;
+            knobX = deltaX * ratio;
+            knobY = deltaY * ratio;
+        }
+
+        // Update knob visual position (relative to center)
+        dPadKnob.style.transform = `translate(calc(-50% + ${knobX}px), calc(-50% + ${knobY}px))`;
+
+        // Determine movement flags based on knob position
+        if (distance < deadZone) {
+            // Inside deadzone - stop all movement
+            moveForward = false;
+            moveBackward = false;
+            turnLeft = false;
+            turnRight = false;
+        } else {
+            // Determine primary direction based on angle
+            const angle = Math.atan2(deltaY, deltaX); // Y first for atan2, gives angle from positive X axis
+
+            // Reset flags before setting
+            moveForward = false;
+            moveBackward = false;
+            turnLeft = false;
+            turnRight = false;
+
+            // Define angle ranges (approximate quadrants)
+            const forwardRange = [-Math.PI * 0.75, -Math.PI * 0.25]; // -135 to -45 degrees (Top)
+            const backwardRange = [Math.PI * 0.25, Math.PI * 0.75];  // 45 to 135 degrees (Bottom)
+            const rightRange = [-Math.PI * 0.25, Math.PI * 0.25];   // -45 to 45 degrees (Right)
+            // Left range covers the wrap-around: (135 to 180 degrees) OR (-180 to -135 degrees)
+
+            if (angle >= forwardRange[0] && angle <= forwardRange[1]) {
+                moveForward = true;
+            } else if (angle >= backwardRange[0] && angle <= backwardRange[1]) {
+                moveBackward = true;
+            } else if (angle >= rightRange[0] && angle <= rightRange[1]) {
+                turnRight = true;
+            } else { // Must be Left (angle > PI*0.75 or angle < -PI*0.75)
+                turnLeft = true;
+            }
+        }
+    }
+
+    function handleDragEnd(event) {
+        if (!isDragging) return;
+        // event.preventDefault(); // Might not be needed or desirable on end
+        isDragging = false;
+        moveForward = false;
+        moveBackward = false;
+        turnLeft = false;
+        turnRight = false;
+        dPadKnob.style.transform = 'translate(-50%, -50%)'; // Reset knob position
+        dPadContainer.style.opacity = '0.5'; // Restore original opacity
+    }
+
+    // Add D-Pad listeners (Touch and Mouse)
+    dPadContainer.addEventListener('touchstart', handleDragStart, { passive: false });
+    document.addEventListener('touchmove', handleDragMove, { passive: false }); // Listen on document for move
+    document.addEventListener('touchend', handleDragEnd); // Listen on document for end
+    document.addEventListener('touchcancel', handleDragEnd); // Handle cancellations
+
+    dPadContainer.addEventListener('mousedown', handleDragStart);
+    document.addEventListener('mousemove', handleDragMove);
+    document.addEventListener('mouseup', handleDragEnd);
+    document.addEventListener('mouseleave', handleDragEnd); // Stop if mouse leaves window
+
+    // Remove old individual button listeners (commented out for clarity)
+    /*
+    function handlePointerDown(event, action) { ... }
+    function handlePointerUp(event, action) { ... }
     btnForward.addEventListener('touchstart', (e) => handlePointerDown(e, 'forward'), { passive: false });
-    btnForward.addEventListener('touchend', (e) => handlePointerUp(e, 'forward'), { passive: false });
-    btnForward.addEventListener('mousedown', (e) => handlePointerDown(e, 'forward'));
-    btnForward.addEventListener('mouseup', (e) => handlePointerUp(e, 'forward'));
-    btnForward.addEventListener('mouseleave', (e) => handlePointerUp(e, 'forward')); // Stop moving if pointer leaves button
+    // ... other old listeners ...
+    */
 
-    btnBack.addEventListener('touchstart', (e) => handlePointerDown(e, 'back'), { passive: false });
-    btnBack.addEventListener('touchend', (e) => handlePointerUp(e, 'back'), { passive: false });
-    btnBack.addEventListener('mousedown', (e) => handlePointerDown(e, 'back'));
-    btnBack.addEventListener('mouseup', (e) => handlePointerUp(e, 'back'));
-    btnBack.addEventListener('mouseleave', (e) => handlePointerUp(e, 'back'));
-
-    btnLeft.addEventListener('touchstart', (e) => handlePointerDown(e, 'left'), { passive: false });
-    btnLeft.addEventListener('touchend', (e) => handlePointerUp(e, 'left'), { passive: false });
-    btnLeft.addEventListener('mousedown', (e) => handlePointerDown(e, 'left'));
-    btnLeft.addEventListener('mouseup', (e) => handlePointerUp(e, 'left'));
-    btnLeft.addEventListener('mouseleave', (e) => handlePointerUp(e, 'left'));
-
-    btnRight.addEventListener('touchstart', (e) => handlePointerDown(e, 'right'), { passive: false });
-    btnRight.addEventListener('touchend', (e) => handlePointerUp(e, 'right'), { passive: false });
-    btnRight.addEventListener('mousedown', (e) => handlePointerDown(e, 'right'));
-    btnRight.addEventListener('mouseup', (e) => handlePointerUp(e, 'right'));
-    btnRight.addEventListener('mouseleave', (e) => handlePointerUp(e, 'right'));
-
-    btnJump.addEventListener('touchstart', (e) => handlePointerDown(e, 'jump'), { passive: false });
-    // No touchend/mouseup needed for jump, it's a single action trigger
-    btnJump.addEventListener('mousedown', (e) => handlePointerDown(e, 'jump'));
 }); // End of DOMContentLoaded listener
 
 // Animation loop
