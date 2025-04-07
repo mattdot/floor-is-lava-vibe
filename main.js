@@ -6,9 +6,11 @@ console.log("Game starting...");
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb); // Add a sky-blue background
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas') });
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas'), antialias: true });
 
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true; // Enable shadow mapping
+renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Softer shadows
 // document.body.appendChild(renderer.domElement); // Append renderer to body - Removed as renderer uses existing canvas
 
 // UI Element Reference
@@ -27,11 +29,17 @@ function updateScoreDisplay() {
     }
 }
 
-// --- Materials ---
-const platformMaterial = new THREE.MeshBasicMaterial({ color: 0xcccccc }); // Grey platforms
-const startPlatformMaterial = new THREE.MeshBasicMaterial({ color: 0xccffcc }); // Light green start
-const goalPlatformMaterial = new THREE.MeshBasicMaterial({ color: 0xffccaa }); // Light orange goal
-const lavaMaterial = new THREE.MeshBasicMaterial({ color: 0xff4500, side: THREE.DoubleSide }); // Red-orange lava
+// --- Materials (Changed to Standard) ---
+const platformMaterial = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.8, metalness: 0.2 }); // Grey platforms
+const startPlatformMaterial = new THREE.MeshStandardMaterial({ color: 0xccffcc, roughness: 0.8, metalness: 0.2 }); // Light green start
+const goalPlatformMaterial = new THREE.MeshStandardMaterial({ 
+    color: 0xffccaa, 
+    roughness: 0.8, 
+    metalness: 0.2, 
+    emissive: 0xffccaa, // Use the same color for emission
+    emissiveIntensity: 0.6 // Adjust intensity (0 to 1 typically)
+}); // Light orange goal - now emissive
+const lavaMaterial = new THREE.MeshStandardMaterial({ color: 0xff4500, roughness: 0.9, metalness: 0.1 }); // Red-orange lava (less reflective)
 
 // --- Character Body Part Dimensions (Moved Up) ---
 const headSize = 0.4;
@@ -204,6 +212,30 @@ let verticalVelocity = 0;
 let isJumping = false;
 let canJump = false; // Make canJump global
 
+// --- Add Lights ---
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); // Soft white light
+scene.add(ambientLight);
+
+const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8); // Stronger white light
+directionalLight.position.set(10, 20, 15); // Position the light
+directionalLight.castShadow = true; // Enable shadow casting
+scene.add(directionalLight);
+
+// Configure shadow properties for the directional light
+directionalLight.shadow.mapSize.width = 1024; // default is 512
+directionalLight.shadow.mapSize.height = 1024; // default is 512
+directionalLight.shadow.camera.near = 0.5;    // default
+directionalLight.shadow.camera.far = 50;     // default
+// Adjust shadow camera frustum to cover the general play area
+const shadowCamSize = 20;
+directionalLight.shadow.camera.left = -shadowCamSize;
+directionalLight.shadow.camera.right = shadowCamSize;
+directionalLight.shadow.camera.top = shadowCamSize;
+directionalLight.shadow.camera.bottom = -shadowCamSize;
+// Optional: Add a helper to visualize the shadow camera
+// const shadowHelper = new THREE.CameraHelper(directionalLight.shadow.camera);
+// scene.add(shadowHelper);
+
 // --- Generate Level Geometry ---
 function loadLevel(levelIndex) {
     // Clear previous level's meshes
@@ -253,6 +285,9 @@ function loadLevel(levelIndex) {
         platformMesh.position.set(pData.x, pData.y, pData.z);
         platformMesh.translateY(platformHeight / 2); // Move up so top is at platformTopY
 
+        platformMesh.castShadow = true; // Platforms cast shadows
+        platformMesh.receiveShadow = true; // Platforms receive shadows
+
         scene.add(platformMesh);
 
         // Store mesh, data, calculated top Y, and movement details
@@ -280,6 +315,7 @@ const lavaGeo = new THREE.PlaneGeometry(lavaSize, lavaSize);
 const lavaMesh = new THREE.Mesh(lavaGeo, lavaMaterial);
 lavaMesh.rotation.x = -Math.PI / 2; // Rotate plane to be horizontal
 lavaMesh.position.y = lavaLevelY;   // Position it below platforms
+lavaMesh.receiveShadow = true; // Lava plane receives shadows
 scene.add(lavaMesh);
 
 // --- Reset Function ---
@@ -293,13 +329,13 @@ function resetPlayer() {
 
 // --- Character Setup --- 
 const characterGroup = new THREE.Group();
+characterGroup.castShadow = true; // Entire character group casts shadows
 scene.add(characterGroup);
-// resetPlayer(); // Initial position is now set by loadLevel
 
-// Character Materials (Simple colors for now)
-const headMaterial = new THREE.MeshBasicMaterial({ color: 0xffdbac }); // Skin tone
-const torsoMaterial = new THREE.MeshBasicMaterial({ color: 0x0055ff }); // Blue shirt
-const legsMaterial = new THREE.MeshBasicMaterial({ color: 0x444444 }); // Dark pants
+// Character Materials (Simple colors for now, Changed to Standard)
+const headMaterial = new THREE.MeshStandardMaterial({ color: 0xffdbac, roughness: 0.6, metalness: 0.1 }); // Skin tone
+const torsoMaterial = new THREE.MeshStandardMaterial({ color: 0x0055ff, roughness: 0.7, metalness: 0.1 }); // Blue shirt
+const legsMaterial = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.7, metalness: 0.1 }); // Dark pants
 
 // Create Geometries
 const headGeo = new THREE.BoxGeometry(headSize, headSize, headSize);
@@ -314,6 +350,14 @@ const leftArmMesh = new THREE.Mesh(armGeo, torsoMaterial); // Same color as tors
 const rightArmMesh = new THREE.Mesh(armGeo, torsoMaterial);
 const leftLegMesh = new THREE.Mesh(legGeo, legsMaterial);
 const rightLegMesh = new THREE.Mesh(legGeo, legsMaterial);
+
+// Enable shadow casting for individual parts (optional but can refine shadows within the character)
+headMesh.castShadow = true;
+torsoMesh.castShadow = true;
+leftArmMesh.castShadow = true;
+rightArmMesh.castShadow = true;
+leftLegMesh.castShadow = true;
+rightLegMesh.castShadow = true;
 
 // Position Meshes relative to the Group origin (bottom center)
 const torsoY = legLength + torsoHeight / 2;
@@ -331,10 +375,6 @@ characterGroup.add(leftArmMesh);
 characterGroup.add(rightArmMesh);
 characterGroup.add(leftLegMesh);
 characterGroup.add(rightLegMesh);
-
-// Set initial character group position (bottom center at world origin)
-// const characterBaseY = 0; // Character origin is now at feet level - Platforms define height now
-// characterGroup.position.set(0, characterBaseY, 0);
 
 // Movement and Turning variables (Now for the character)
 let moveForward = false;
