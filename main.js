@@ -368,6 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     let isDragging = false;
+    let activePointerId = null; // To track the specific touch/mouse pointer
     let dPadCenterX, dPadCenterY, dPadRadius;
     const knobMaxDisplacement = 30; // Max pixels the knob center can move from pad center
     const deadZone = 10; // Pixels from center before movement is registered
@@ -398,25 +399,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- D-Pad Event Handling ---
     function handleDragStart(event) {
+        if (isDragging) return; // Don't start a new drag if one is active
         event.preventDefault();
         isDragging = true;
-        dPadContainer.style.opacity = '0.8'; // Make it slightly more opaque when active
-        handleDragMove(event); // Process initial position immediately
+
+        if (event.type === 'touchstart') {
+            activePointerId = event.changedTouches[0].identifier;
+            handleDragMove(event); // Process initial position
+        } else if (event.type === 'mousedown') {
+            activePointerId = 'mouse'; // Use a simple marker for mouse
+            handleDragMove(event); // Process initial position
+        }
+        dPadContainer.style.opacity = '0.8';
     }
 
     function handleDragMove(event) {
         if (!isDragging) return;
-        event.preventDefault();
 
-        let clientX, clientY;
-        if (event.touches) {
-            clientX = event.touches[0].clientX;
-            clientY = event.touches[0].clientY;
+        let currentPointer = null;
+
+        if (event.type === 'touchmove') {
+            for (let i = 0; i < event.changedTouches.length; i++) {
+                if (event.changedTouches[i].identifier === activePointerId) {
+                    currentPointer = event.changedTouches[i];
+                    break;
+                }
+            }
+            if (!currentPointer) return; // This move event is not for our tracked touch
+        } else if (event.type === 'mousemove') {
+            if (activePointerId !== 'mouse') return; // Not our mouse drag
+            currentPointer = event;
+        } else if (event.type === 'touchstart' || event.type === 'mousedown') {
+            // Handle the initial move call from handleDragStart
+            if (event.type === 'touchstart' && event.changedTouches[0].identifier === activePointerId) {
+                 currentPointer = event.changedTouches[0];
+            } else if (event.type === 'mousedown' && activePointerId === 'mouse') {
+                 currentPointer = event;
+            } else {
+                return; // Initial call doesn't match active pointer?
+            }
         } else {
-            clientX = event.clientX;
-            clientY = event.clientY;
+             return; // Ignore other event types if they somehow get here
         }
 
+        event.preventDefault(); // Prevent scroll/zoom only if we are processing the move
+
+        const clientX = currentPointer.clientX;
+        const clientY = currentPointer.clientY;
         const deltaX = clientX - dPadCenterX;
         const deltaY = clientY - dPadCenterY;
         const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
@@ -471,26 +500,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleDragEnd(event) {
         if (!isDragging) return;
-        // event.preventDefault(); // Might not be needed or desirable on end
-        isDragging = false;
-        moveForward = false;
-        moveBackward = false;
-        turnLeft = false;
-        turnRight = false;
-        dPadKnob.style.transform = 'translate(-50%, -50%)'; // Reset knob position
-        dPadContainer.style.opacity = '0.5'; // Restore original opacity
+
+        let pointerEnded = false;
+        if (event.type === 'touchend' || event.type === 'touchcancel') {
+            for (let i = 0; i < event.changedTouches.length; i++) {
+                if (event.changedTouches[i].identifier === activePointerId) {
+                    pointerEnded = true;
+                    break;
+                }
+            }
+        } else if (event.type === 'mouseup') {
+            if (activePointerId === 'mouse') {
+                pointerEnded = true;
+            }
+        }
+
+        if (pointerEnded) {
+            // event.preventDefault(); // Usually not needed on end
+            isDragging = false;
+            activePointerId = null; // Clear the tracked pointer
+            moveForward = false;
+            moveBackward = false;
+            turnLeft = false;
+            turnRight = false;
+            dPadKnob.style.transform = 'translate(-50%, -50%)'; // Reset knob position
+            dPadContainer.style.opacity = '0.5'; // Restore original opacity
+        }
     }
 
-    // Add D-Pad listeners (Touch and Mouse)
+    // Add D-Pad listeners
     dPadContainer.addEventListener('touchstart', handleDragStart, { passive: false });
-    document.addEventListener('touchmove', handleDragMove, { passive: false }); // Listen on document for move
-    document.addEventListener('touchend', handleDragEnd); // Listen on document for end
-    document.addEventListener('touchcancel', handleDragEnd); // Handle cancellations
+    document.addEventListener('touchmove', handleDragMove, { passive: false });
+    document.addEventListener('touchend', handleDragEnd);
+    document.addEventListener('touchcancel', handleDragEnd);
 
     dPadContainer.addEventListener('mousedown', handleDragStart);
     document.addEventListener('mousemove', handleDragMove);
     document.addEventListener('mouseup', handleDragEnd);
-    document.addEventListener('mouseleave', handleDragEnd); // Stop if mouse leaves window
+    // Remove mouseleave on document - mouseup should handle drag end reliably enough
+    // document.addEventListener('mouseleave', handleDragEnd); 
 
     // Remove old individual button listeners (commented out for clarity)
     /*
