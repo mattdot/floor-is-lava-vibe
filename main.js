@@ -371,7 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let activePointerId = null; // To track the specific touch/mouse pointer
     let dPadCenterX, dPadCenterY, dPadRadius;
     const knobMaxDisplacement = 30; // Max pixels the knob center can move from pad center
-    const deadZone = 10; // Pixels from center before movement is registered
+    const deadZone = 20; // Increased deadzone for less sensitivity
 
     function updateDPadDimensions() {
         const rect = dPadContainer.getBoundingClientRect();

@@ -42,7 +42,7 @@ canvas {
     width: 100%;
     display: flex;
     justify-content: space-between; /* Space out D-pad and Jump button */
-    align-items: flex-end; /* Align items to the bottom */
+    align-items: center; /* Align items vertically by center */
     padding: 0 20px; /* Add some padding on the sides */
     box-sizing: border-box; /* Include padding in width calculation */
     pointer-events: auto; /* Enable pointer events for controls area */
@@ -51,8 +51,8 @@ canvas {
 /* --- D-Pad Styling --- */
 #d-pad-container {
     position: relative; /* Needed for absolute positioning of knob */
-    width: 120px; /* Adjust size as needed */
-    height: 120px;
+    width: 150px; /* Increased size */
+    height: 150px; /* Increased size */
     background-color: rgba(128, 128, 128, 0.5); /* Semi-transparent grey */
     border-radius: 50%; /* Make it circular */
     border: 2px solid rgba(255, 255, 255, 0.7);
@@ -64,8 +64,8 @@ canvas {
 }
 
 #d-pad-knob {
-    width: 50px; /* Knob size */
-    height: 50px;
+    width: 60px; /* Increased size */
+    height: 60px; /* Increased size */
     background-color: rgba(200, 200, 200, 0.8); /* Lighter grey */
     border-radius: 50%;
     border: 1px solid white;
@@ -77,17 +77,22 @@ canvas {
 }
 
 #button-jump {
-    padding: 15px 25px;
-    font-size: 1.2em;
+    /* padding: 15px 25px; */ /* Removed padding */
+    width: 150px; /* Match D-pad size */
+    height: 150px; /* Match D-pad size */
+    font-size: 1.5em; /* Adjusted font size */
     background-color: rgba(0, 150, 0, 0.7); /* Green */
     color: white;
     border: 2px solid rgba(255, 255, 255, 0.8);
-    border-radius: 10px;
+    border-radius: 50%; /* Make it circular */
     cursor: pointer;
     user-select: none; /* Prevent text selection */
     pointer-events: auto; /* Enable pointer events */
-    min-width: 100px; /* Ensure minimum width */
+    /* min-width: 100px; */ /* Removed min-width */
     text-align: center;
+    display: flex; /* Use flexbox for centering */
+    justify-content: center; /* Center text horizontally */
+    align-items: center; /* Center text vertically */
 }
 
 #button-jump:active {
@@ -97,19 +102,21 @@ canvas {
 /* --- Responsive Adjustments --- */
 @media (max-width: 600px) {
     #d-pad-container {
-        width: 100px;
-        height: 100px;
+        width: 120px; /* Increased size */
+        height: 120px; /* Increased size */
     }
 
     #d-pad-knob {
-        width: 40px;
-        height: 40px;
+        width: 50px; /* Increased size */
+        height: 50px; /* Increased size */
     }
 
     #button-jump {
-        padding: 12px 20px;
-        font-size: 1em;
-        min-width: 80px;
+        /* padding: 12px 20px; */ /* Removed padding */
+        width: 120px; /* Match D-pad size */
+        height: 120px; /* Match D-pad size */
+        font-size: 1.2em; /* Adjusted font size */
+        /* min-width: 80px; */ /* Removed min-width */
     }
 
     #controls {
