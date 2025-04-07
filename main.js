@@ -346,7 +346,20 @@ const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3(); // Only z-component will be used now
 const clock = new THREE.Clock(); // For delta time calculation
 
-// --- On-Screen Controls Logic ---
+// --- Jump Button Handling (Moved to Global Scope) ---
+// Moved here so it's accessible by keyboard listener
+function handleJumpPress(event) {
+    // Check if event exists and has preventDefault before calling it
+    if (event && typeof event.preventDefault === 'function') {
+        event.preventDefault();
+    }
+    if (canJump && !isJumping) {
+        verticalVelocity = jumpStrength;
+        isJumping = true;
+        canJump = false;
+        currentLevelJumps++; // Increment jump counter
+    }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     // Remove old button references
@@ -383,17 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateDPadDimensions(); // Initial calculation
     window.addEventListener('resize', updateDPadDimensions); // Recalculate on resize
 
-    // --- Jump Button Handling (remains similar) ---
-    function handleJumpPress(event) {
-        event.preventDefault();
-        if (canJump && !isJumping) {
-            verticalVelocity = jumpStrength;
-            isJumping = true;
-            canJump = false;
-            currentLevelJumps++; // Increment jump counter
-        }
-    }
-
+    // --- Jump Button Listeners (uses globally defined handleJumpPress) ---
     btnJump.addEventListener('touchstart', handleJumpPress, { passive: false });
     btnJump.addEventListener('mousedown', handleJumpPress);
 
@@ -549,6 +552,58 @@ document.addEventListener('DOMContentLoaded', () => {
     */
 
 }); // End of DOMContentLoaded listener
+
+// --- Keyboard Controls --- (Now correctly uses global handleJumpPress)
+const onKeyDown = function (event) {
+    switch (event.code) {
+        case 'ArrowUp':
+        case 'KeyW':
+            moveForward = true;
+            break;
+        case 'ArrowLeft':
+        case 'KeyA':
+            turnLeft = true;
+            break;
+        case 'ArrowDown':
+        case 'KeyS':
+            moveBackward = true;
+            break;
+        case 'ArrowRight':
+        case 'KeyD':
+            turnRight = true;
+            break;
+        case 'Space':
+            // Trigger jump via the globally defined function
+            handleJumpPress(null); // Pass null or a mock event if needed
+            break;
+    }
+};
+
+const onKeyUp = function (event) {
+    switch (event.code) {
+        case 'ArrowUp':
+        case 'KeyW':
+            moveForward = false;
+            break;
+        case 'ArrowLeft':
+        case 'KeyA':
+            turnLeft = false;
+            break;
+        case 'ArrowDown':
+        case 'KeyS':
+            moveBackward = false;
+            break;
+        case 'ArrowRight':
+        case 'KeyD':
+            turnRight = false;
+            break;
+        // No key up action needed for Space/Jump
+    }
+};
+
+document.addEventListener('keydown', onKeyDown);
+document.addEventListener('keyup', onKeyUp);
+// --- End Keyboard Controls ---
 
 // Animation loop
 function animate() {
